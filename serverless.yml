@@ -1,0 +1,105 @@
+service: dynamodb-crud-api
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: dev
+  region: us-east-1
+  environment:
+    DYNAMODB_TABLE_NAME: ${self:custom.TransfersTableName}
+
+custom:
+  TransfersTableName: transfer-table-${self:provider.stage}
+
+plugins:
+  - serverless-iam-roles-per-function
+
+functions:
+  getTransfer:
+    handler: src/getTransfer.getTransfer
+    name: get-tranfer
+    memorySize: 128 # mb
+    timeout: 5 # seconds
+    events:
+      - http:
+          path: transfers/{id}
+          method: GET
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:GetItem"
+        Resource: !GetAtt TransfersTable.Arn
+  createTransfer:
+    handler: src/createTransfer.createTransfer
+    name: create-transfer
+    memorySize: 128 # mb
+    timeout: 5 # seconds
+    events:
+      - http:
+          path: transfers
+          method: POST
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:PutItem"
+        Resource: !GetAtt TransfersTable.Arn
+  updateTransfer:
+    handler: src/updateTransfer.updateTransfer
+    name: update-transfer
+    memorySize: 128 # mb
+    timeout: 5 # seconds
+    events:
+      - http:
+          path: transfers/{id}
+          method: PUT
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:UpdateItem"
+        Resource: !GetAtt TransfersTable.Arn
+  deleteTransfer:
+    handler: src/deleteTransfer.deleteTransfer
+    name: delete-transfer
+    memorySize: 128 # mb
+    timeout: 5 # seconds
+    events:
+      - http:
+          path: transfers/{id}
+          method: DELETE
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:DeleteItem"
+        Resource: !GetAtt TransfersTable.Arn
+  getAllTransfers:
+    handler: src/getAllTransfers.getAllTransfers
+    name: get-all-transfers
+    memorySize: 128 # mb
+    timeout: 5 # seconds
+    events:
+      - http:
+          path: transfers
+          method: GET
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:Scan"
+          - "dynamodb:PutItem"
+          - "s3:*"
+        Resource: !GetAtt TransfersTable.Arn
+
+resources:
+  Resources:
+    TransfersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.TransfersTableName}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
